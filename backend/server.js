@@ -8,11 +8,11 @@ const groupRoutes = require('./routes/groupRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Update CORS to allow frontend
+// CORS Configuration - Allow frontend
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://localhost:3002'], // Add your frontend URL(s) here
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -29,7 +29,7 @@ app.get('/api/test', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Error:', err.stack);
     res.status(500).json({
         success: false,
         message: 'Something went wrong!',
@@ -39,8 +39,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`StudySync API ready`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`📚 StudySync API ready`);
 });
 
 module.exports = app;
