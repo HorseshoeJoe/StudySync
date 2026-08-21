@@ -1,5 +1,116 @@
 const Group = require('../models/Group');
 
+// Create a new study group
+exports.createGroup = async (req, res) => {
+    try {
+        const {
+            name,
+            course_code,
+            course_title,
+            institution,
+            term,
+            description = '',
+            visibility = 'public',
+            max_members = 50
+        } = req.body;
+
+        // Validate required fields
+        if (
+            typeof name !== 'string' ||
+            typeof course_code !== 'string' ||
+            typeof course_title !== 'string' ||
+            typeof institution !== 'string' ||
+            typeof term !== 'string' ||
+            !name.trim() ||
+            !course_code.trim() ||
+            !course_title.trim() ||
+            !institution.trim() ||
+            !term.trim()
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    'Name, course code, course title, institution, and term are required'
+            });
+        }
+
+        // Validate visibility
+        const allowedVisibility = [
+            'public',
+            'request_to_join'
+        ];
+
+        if (!allowedVisibility.includes(visibility)) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    'Visibility must be public or request_to_join'
+            });
+        }
+
+        // Validate max_members
+        const parsedMaxMembers = Number(max_members);
+
+        if (
+            !Number.isInteger(parsedMaxMembers) ||
+            parsedMaxMembers < 1
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    'Max members must be a positive integer'
+            });
+        }
+
+        /*
+         * Temporary logged-in user.
+         *
+         * Authentication has not yet been implemented
+         * in the current main branch.
+         *
+         * Replace this with req.user.id once the
+         * authentication middleware is available.
+         */
+        const userId = 1;
+
+        const newGroup = await Group.createWithOwner(
+            {
+                name: name.trim(),
+                course_code: course_code.trim(),
+                course_title: course_title.trim(),
+                institution: institution.trim(),
+                term: term.trim(),
+                description:
+                    typeof description === 'string'
+                        ? description.trim()
+                        : '',
+                visibility,
+                max_members: parsedMaxMembers
+            },
+            userId
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: 'Study group created successfully',
+            data: newGroup
+        });
+
+    } catch (error) {
+        console.error(
+            'Error creating study group:',
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to create study group',
+            error: error.message
+        });
+    }
+};
+
+// Search for study groups
 exports.searchGroups = async (req, res) => {
     try {
         const {
@@ -28,20 +139,29 @@ exports.searchGroups = async (req, res) => {
 
         // Remove undefined or empty filters
         Object.keys(filters).forEach(key => {
-            if (filters[key] === undefined || filters[key] === '') {
+            if (
+                filters[key] === undefined ||
+                filters[key] === ''
+            ) {
                 delete filters[key];
             }
         });
 
-        const groups = await Group.searchAndFilter(filters);
+        const groups =
+            await Group.searchAndFilter(filters);
 
         res.status(200).json({
             success: true,
             count: groups.length,
             data: groups
         });
+
     } catch (error) {
-        console.error('Error searching groups:', error);
+        console.error(
+            'Error searching groups:',
+            error
+        );
+
         res.status(500).json({
             success: false,
             message: 'Failed to search groups',
@@ -50,9 +170,11 @@ exports.searchGroups = async (req, res) => {
     }
 };
 
+// Get one group by ID
 exports.getGroupById = async (req, res) => {
     try {
         const { id } = req.params;
+
         const group = await Group.findById(id);
 
         if (!group) {
@@ -66,8 +188,13 @@ exports.getGroupById = async (req, res) => {
             success: true,
             data: group
         });
+
     } catch (error) {
-        console.error('Error fetching group:', error);
+        console.error(
+            'Error fetching group:',
+            error
+        );
+
         res.status(500).json({
             success: false,
             message: 'Failed to fetch group',
@@ -76,10 +203,14 @@ exports.getGroupById = async (req, res) => {
     }
 };
 
+// Get filter options
 exports.getFilterOptions = async (req, res) => {
     try {
-        const institutions = await Group.getDistinctInstitutions();
-        const terms = await Group.getDistinctTerms();
+        const institutions =
+            await Group.getDistinctInstitutions();
+
+        const terms =
+            await Group.getDistinctTerms();
 
         res.status(200).json({
             success: true,
@@ -88,11 +219,17 @@ exports.getFilterOptions = async (req, res) => {
                 terms
             }
         });
+
     } catch (error) {
-        console.error('Error fetching filter options:', error);
+        console.error(
+            'Error fetching filter options:',
+            error
+        );
+
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch filter options',
+            message:
+                'Failed to fetch filter options',
             error: error.message
         });
     }

@@ -1,6 +1,11 @@
 const express = require('express');
+
 const router = express.Router();
+
 const groupController = require('../controllers/groupController');
+
+// POST /api/groups - Create a new study group
+router.post('/', groupController.createGroup);
 
 // GET /api/groups/search - Search and filter groups
 router.get('/search', groupController.searchGroups);
