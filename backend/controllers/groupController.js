@@ -64,15 +64,14 @@ exports.createGroup = async (req, res) => {
         }
 
         /*
-         * Temporary logged-in user.
+         * The creator is the authenticated caller.
          *
-         * Authentication has not yet been implemented
-         * in the current main branch.
-         *
-         * Replace this with req.user.id once the
-         * authentication middleware is available.
+         * PB-02 T-02.2 landed the requireAuth middleware,
+         * which sets req.user from the verified token, so
+         * the Sprint 2 placeholder identity is gone. The
+         * route cannot be reached without a session.
          */
-        const userId = 1;
+        const userId = req.user.id;
 
         const newGroup = await Group.createWithOwner(
             {
@@ -125,12 +124,9 @@ exports.joinGroup = async (req, res) => {
             });
         }
 
-        /*
-         * Temporary logged-in user.
-         * Replace with req.user.id when
-         * authentication is available.
-         */
-        const userId = 1;
+        // The joining student is the authenticated caller
+        // (PB-02 T-02.2).
+        const userId = req.user.id;
 
         const result =
             await GroupMember.joinPublicGroup(

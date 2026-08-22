@@ -1,4 +1,19 @@
 const pool = require('./config/database');
+const bcrypt = require('bcryptjs');
+
+/*
+ * PB-01 T-01.3 — the sample accounts are seeded with
+ * real bcrypt hashes at the same cost factor the
+ * registration endpoint uses (NFR-01). The previous
+ * placeholder strings ('hash123' and so on) could never
+ * be signed in with, which would have made every
+ * seeded account unusable for the demonstration.
+ *
+ * The shared demonstration password satisfies the same
+ * policy the registration form enforces.
+ */
+const SAMPLE_PASSWORD = 'StudySync#2026';
+const SALT_ROUNDS = 10;
 
 async function setupDatabase() {
     try {
@@ -22,8 +37,26 @@ async function setupDatabase() {
                 program VARCHAR(100),
                 password_hash VARCHAR(255) NOT NULL,
                 avatar_url VARCHAR(500),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        /*
+         * PB-01 T-01.1 — a case-insensitive unique index
+         * on e-mail.
+         *
+         * The UNIQUE constraint on the column alone
+         * treats Student@University.edu and
+         * student@university.edu as different values, so
+         * one address could be registered twice under
+         * different capitalisation. The model lowercases
+         * before writing; this index makes the rule hold
+         * at the database level regardless.
+         */
+        await pool.query(`
+            CREATE UNIQUE INDEX idx_users_email_lower
+                ON users (LOWER(email))
         `);
 
         console.log('Users table created');
@@ -79,54 +112,46 @@ async function setupDatabase() {
 
         console.log('Group members table created');
 
-        // Insert sample users
-        await pool.query(`
-            INSERT INTO users (
-                email,
-                display_name,
-                institution,
-                program,
-                password_hash
-            )
-            VALUES
-            (
-                'student1@university.edu',
-                'Alice Johnson',
-                'University of Toronto',
-                'Computer Science',
-                'hash123'
-            ),
-            (
-                'student2@university.edu',
-                'Bob Smith',
-                'University of Toronto',
-                'Mathematics',
-                'hash456'
-            ),
-            (
-                'student3@university.edu',
-                'Carol White',
-                'University of Toronto',
-                'Physics',
-                'hash789'
-            ),
-            (
-                'student4@university.edu',
-                'David Brown',
-                'University of Toronto',
-                'Engineering',
-                'hash101'
-            ),
-            (
-                'student5@university.edu',
-                'Emma Davis',
-                'University of Toronto',
-                'Computer Science',
-                'hash112'
-            )
-        `);
+        // Insert sample users with bcrypt hashes
+        const samplePasswordHash = await bcrypt.hash(
+            SAMPLE_PASSWORD,
+            SALT_ROUNDS
+        );
+
+        const sampleUsers = [
+            ['student1@university.edu', 'Alice Johnson', 'University of Toronto', 'Computer Science'],
+            ['student2@university.edu', 'Bob Smith', 'University of Toronto', 'Mathematics'],
+            ['student3@university.edu', 'Carol White', 'University of Toronto', 'Physics'],
+            ['student4@university.edu', 'David Brown', 'University of Toronto', 'Engineering'],
+            ['student5@university.edu', 'Emma Davis', 'University of Toronto', 'Computer Science']
+        ];
+
+        for (const [email, displayName, institution, program] of sampleUsers) {
+            await pool.query(
+                `
+                INSERT INTO users (
+                    email,
+                    display_name,
+                    institution,
+                    program,
+                    password_hash
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                `,
+                [
+                    email,
+                    displayName,
+                    institution,
+                    program,
+                    samplePasswordHash
+                ]
+            );
+        }
 
         console.log('Sample users inserted');
+        console.log(
+            `   Every sample account signs in with: ${SAMPLE_PASSWORD}`
+        );
 
         // Insert sample groups
         await pool.query(`

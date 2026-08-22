@@ -3,6 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 
 const app = express();
@@ -20,6 +22,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRoutes);   // PB-01, PB-02
+app.use('/api/users', userRoutes);  // PB-03
 app.use('/api/groups', groupRoutes);
 
 // Test endpoint
@@ -27,20 +31,45 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'StudySync API is running!' });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
-    res.status(500).json({
+// Unknown route
+app.use((req, res) => {
+    res.status(404).json({
         success: false,
-        message: 'Something went wrong!',
-        error: err.message
+        message: `No such endpoint: ${req.method} ${req.originalUrl}`
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-    console.log(`📚 StudySync API ready`);
+/*
+ * Error handling middleware.
+ *
+ * NFR-08: the caller gets a plain message; the stack and
+ * the driver's error text are written to the server log
+ * only, so a database error cannot leak schema details
+ * to the browser.
+ */
+app.use((err, req, res, next) => {
+    console.error('Error:', err.stack);
+
+    // Malformed JSON in the request body.
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            success: false,
+            message: 'The request body is not valid JSON'
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        message: 'Something went wrong. Please try again.'
+    });
 });
+
+// Start server, unless this file was required by a test.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`✅ Server running on http://localhost:${PORT}`);
+        console.log(`📚 StudySync API ready`);
+    });
+}
 
 module.exports = app;
