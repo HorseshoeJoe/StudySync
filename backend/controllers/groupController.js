@@ -1,4 +1,5 @@
 const Group = require('../models/Group');
+const GroupMember = require('../models/GroupMember');
 
 // Create a new study group
 exports.createGroup = async (req, res) => {
@@ -105,6 +106,91 @@ exports.createGroup = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Failed to create study group',
+            error: error.message
+        });
+    }
+};
+
+// Join a public study group
+exports.joinGroup = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const groupId = Number(id);
+
+        if (!Number.isInteger(groupId) || groupId < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid group ID'
+            });
+        }
+
+        /*
+         * Temporary logged-in user.
+         * Replace with req.user.id when
+         * authentication is available.
+         */
+        const userId = 1;
+
+        const result =
+            await GroupMember.joinPublicGroup(
+                groupId,
+                userId
+            );
+
+        if (result.status === 'not_found') {
+            return res.status(404).json({
+                success: false,
+                message: 'Group not found'
+            });
+        }
+
+        if (result.status === 'already_member') {
+            return res.status(409).json({
+                success: false,
+                message:
+                    'You are already a member of this group'
+            });
+        }
+
+        if (result.status === 'restricted') {
+            return res.status(403).json({
+                success: false,
+                message:
+                    'This group requires a join request'
+            });
+        }
+
+        if (result.status === 'full') {
+            return res.status(409).json({
+                success: false,
+                message:
+                    'This study group is full'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message:
+                'Successfully joined the study group',
+            data: {
+                membership:
+                    result.membership,
+                group:
+                    result.group
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            'Error joining study group:',
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                'Failed to join study group',
             error: error.message
         });
     }

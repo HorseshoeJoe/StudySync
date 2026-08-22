@@ -21,6 +21,8 @@ function App() {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [joiningGroupId, setJoiningGroupId] =
+    useState(null);
 
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] =
@@ -196,12 +198,58 @@ function App() {
         searchGroups(updatedFilters);
     };
 
-    const handleJoinGroup = (
-        groupId
-    ) => {
-        alert(
-            `Request to join group ${groupId} - This feature will be implemented in Sprint 3!`
-        );
+    const handleJoinGroup = async (groupId) => {
+        setJoiningGroupId(groupId);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const response = await axios.post(
+                `${API_BASE}/api/groups/${groupId}/join`
+            );
+
+            if (response.data.success) {
+                const updatedGroup =
+                    response.data.data.group;
+
+                // Update member count immediately
+                setGroups(prevGroups =>
+                    prevGroups.map(group =>
+                        group.id === updatedGroup.id
+                            ? {
+                                ...group,
+                                current_members:
+                                    updatedGroup.current_members
+                            }
+                            : group
+                    )
+                );
+
+                setSuccessMessage(
+                    `Successfully joined "${updatedGroup.name}"!`
+                );
+            }
+
+        } catch (err) {
+            console.error(
+                'Join group error:',
+                err
+            );
+
+            if (err.response) {
+                setError(
+                    err.response.data.message ||
+                    'Failed to join study group'
+                );
+            } else {
+                setError(
+                    'Cannot connect to the backend server.'
+                );
+            }
+
+        } finally {
+            setJoiningGroupId(null);
+        }
     };
 
     return (
@@ -299,6 +347,7 @@ function App() {
                         onJoinGroup={
                             handleJoinGroup
                         }
+                        joiningGroupId={joiningGroupId}
                     />
                 )}
 
