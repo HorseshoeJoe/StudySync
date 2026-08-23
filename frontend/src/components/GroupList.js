@@ -1,7 +1,10 @@
 import React from 'react';
 import { Card, Row, Col, Badge, Button } from 'react-bootstrap';
+import axios from 'axios';
 
-const GroupList = ({ groups, onJoinGroup }) => {
+const GroupList = ({ groups, onJoinGroup, onRequestJoin }) => {
+    const API_BASE = 'http://localhost:5000';
+
     if (!groups || groups.length === 0) {
         return (
             <Card className="text-center p-5">
@@ -10,6 +13,37 @@ const GroupList = ({ groups, onJoinGroup }) => {
             </Card>
         );
     }
+
+    const handleJoinClick = async (groupId, visibility) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+
+            if (visibility === 'public') {
+                const response = await axios.post(
+                    `${API_BASE}/api/groups/${groupId}/join`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('Successfully joined the group!');
+                if (onJoinGroup) onJoinGroup(groupId);
+            } else {
+                const response = await axios.post(
+                    `${API_BASE}/api/groups/${groupId}/request`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('Join request submitted! The group owner will review it.');
+                if (onRequestJoin) onRequestJoin(groupId);
+            }
+        } catch (err) {
+            console.error('Error joining group:', err);
+            alert(err.response?.data?.message || 'Failed to join group');
+        }
+    };
 
     return (
         <Row>
@@ -43,7 +77,7 @@ const GroupList = ({ groups, onJoinGroup }) => {
                                 <Button 
                                     variant={group.visibility === 'public' ? 'primary' : 'outline-primary'}
                                     size="sm"
-                                    onClick={() => onJoinGroup(group.id)}
+                                    onClick={() => handleJoinClick(group.id, group.visibility)}
                                 >
                                     {group.visibility === 'public' ? 'Join Group' : 'Request to Join'}
                                 </Button>
