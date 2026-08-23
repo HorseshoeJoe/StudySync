@@ -4,13 +4,14 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const groupRoutes = require('./routes/groupRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS Configuration - Allow frontend
+// CORS Configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://localhost:3002'], // Add your frontend URL(s) here
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -21,6 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/groups', groupRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -37,10 +39,9 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
 app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-    console.log(`📚 StudySync API ready`);
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`StudySync API ready`);
 });
 
 module.exports = app;

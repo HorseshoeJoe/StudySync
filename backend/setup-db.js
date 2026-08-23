@@ -2,10 +2,10 @@ const pool = require('./config/database');
 
 async function setupDatabase() {
     try {
-        console.log('Setting up database...');
+        console.log('Setting up StudySync database...');
 
-        // Drop existing tables
-        // group_members must be dropped first because it references groups and users
+        // Drop existing tables in correct order (due to foreign keys)
+        await pool.query('DROP TABLE IF EXISTS join_requests CASCADE');
         await pool.query('DROP TABLE IF EXISTS group_members CASCADE');
         await pool.query('DROP TABLE IF EXISTS groups CASCADE');
         await pool.query('DROP TABLE IF EXISTS users CASCADE');
@@ -60,70 +60,46 @@ async function setupDatabase() {
                 id SERIAL PRIMARY KEY,
                 group_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
-                role VARCHAR(20)
-                    DEFAULT 'member'
-                    CHECK (role IN ('owner', 'moderator', 'member')),
+                role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('owner', 'moderator', 'member')),
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                FOREIGN KEY (group_id)
-                    REFERENCES groups(id)
-                    ON DELETE CASCADE,
-
-                FOREIGN KEY (user_id)
-                    REFERENCES users(id)
-                    ON DELETE CASCADE,
-
-                UNIQUE (group_id, user_id)
+                status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'declined')),
+                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(group_id, user_id)
             )
         `);
-
         console.log('Group members table created');
 
-        // Insert sample users
+        // Create join_requests table
         await pool.query(`
-            INSERT INTO users (
-                email,
-                display_name,
-                institution,
-                program,
-                password_hash
+            CREATE TABLE join_requests (
+                id SERIAL PRIMARY KEY,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
+                requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                reviewed_at TIMESTAMP,
+                reviewed_by INTEGER REFERENCES users(id),
+                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(group_id, user_id)
             )
-            VALUES
-            (
-                'student1@university.edu',
-                'Alice Johnson',
-                'University of Toronto',
-                'Computer Science',
-                'hash123'
-            ),
-            (
-                'student2@university.edu',
-                'Bob Smith',
-                'University of Toronto',
-                'Mathematics',
-                'hash456'
-            ),
-            (
-                'student3@university.edu',
-                'Carol White',
-                'University of Toronto',
-                'Physics',
-                'hash789'
-            ),
-            (
-                'student4@university.edu',
-                'David Brown',
-                'University of Toronto',
-                'Engineering',
-                'hash101'
-            ),
-            (
-                'student5@university.edu',
-                'Emma Davis',
-                'University of Toronto',
-                'Computer Science',
-                'hash112'
-            )
+        `);
+        console.log('Join requests table created');
+
+        // Create indexes for performance
+        await pool.query(`CREATE INDEX idx_join_requests_group_status ON join_requests(group_id, status)`);
+        await pool.query(`CREATE INDEX idx_join_requests_user ON join_requests(user_id)`);
+        await pool.query(`CREATE INDEX idx_group_members_user ON group_members(user_id)`);
+        await pool.query(`CREATE INDEX idx_group_members_group ON group_members(group_id)`);
+        console.log('Indexes created');
+
+        // Insert sample users with hashed passwords (using bcrypt hash for 'password123')
+        await pool.query(`
+            INSERT INTO users (email, display_name, institution, program, password_hash) VALUES
+            ('alice@university.edu', 'Alice Johnson', 'University of Toronto', 'Computer Science', '$2b$10$Yb9tXgZVXb9tXgZVXb9tXeO9tXgZVXb9tXgZVXb9tXgZVXb9tXgZVXb9tXg'),
+            ('bob@university.edu', 'Bob Smith', 'University of Toronto', 'Mathematics', '$2b$10$Yb9tXgZVXb9tXgZVXb9tXeO9tXgZVXb9tXgZVXb9tXgZVXb9tXgZVXb9tXg'),
+            ('carol@university.edu', 'Carol White', 'University of Toronto', 'Physics', '$2b$10$Yb9tXgZVXb9tXgZVXb9tXeO9tXgZVXb9tXgZVXb9tXgZVXb9tXgZVXb9tXg')
         `);
 
         console.log('Sample users inserted');

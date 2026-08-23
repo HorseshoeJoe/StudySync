@@ -23,6 +23,37 @@ const GroupList = ({
         );
     }
 
+    const handleJoinClick = async (groupId, visibility) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Please log in first');
+                return;
+            }
+
+            if (visibility === 'public') {
+                const response = await axios.post(
+                    `${API_BASE}/api/groups/${groupId}/join`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('Successfully joined the group!');
+                if (onJoinGroup) onJoinGroup(groupId);
+            } else {
+                const response = await axios.post(
+                    `${API_BASE}/api/groups/${groupId}/request`,
+                    {},
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('Join request submitted! The group owner will review it.');
+                if (onRequestJoin) onRequestJoin(groupId);
+            }
+        } catch (err) {
+            console.error('Error joining group:', err);
+            alert(err.response?.data?.message || 'Failed to join group');
+        }
+    };
+
     return (
         <Row>
             {groups.map((group) => {

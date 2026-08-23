@@ -17,7 +17,7 @@ import FilterOptions from './components/FilterOptions';
 import GroupList from './components/GroupList';
 import CreateGroupForm from './components/CreateGroupForm';
 
-function App() {
+function AppContent() {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -35,8 +35,33 @@ function App() {
     const [showCreateForm, setShowCreateForm] =
         useState(false);
 
-    // Base URL for API
     const API_BASE = 'http://localhost:5000';
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            setIsAuthenticated(true);
+            axios.get(`${API_BASE}/api/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).then(response => {
+                if (response.data.success) {
+                    setUser(response.data.data);
+                    localStorage.setItem('displayName', response.data.data.display_name);
+                }
+            }).catch(() => {
+                handleLogout();
+            });
+        }
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('displayName');
+        setIsAuthenticated(false);
+        setUser(null);
+        navigate('/');
+    };
 
     // Search for study groups
     const searchGroups = async (
