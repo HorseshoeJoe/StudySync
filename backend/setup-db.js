@@ -17,10 +17,10 @@ const SALT_ROUNDS = 10;
 
 async function setupDatabase() {
     try {
-        console.log('Setting up database...');
+        console.log('Setting up StudySync database...');
 
-        // Drop existing tables
-        // group_members must be dropped first because it references groups and users
+        // Drop existing tables in correct order (due to foreign keys)
+        await pool.query('DROP TABLE IF EXISTS join_requests CASCADE');
         await pool.query('DROP TABLE IF EXISTS group_members CASCADE');
         await pool.query('DROP TABLE IF EXISTS groups CASCADE');
         await pool.query('DROP TABLE IF EXISTS users CASCADE');
@@ -93,23 +93,14 @@ async function setupDatabase() {
                 id SERIAL PRIMARY KEY,
                 group_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
-                role VARCHAR(20)
-                    DEFAULT 'member'
-                    CHECK (role IN ('owner', 'moderator', 'member')),
+                role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('owner', 'moderator', 'member')),
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                FOREIGN KEY (group_id)
-                    REFERENCES groups(id)
-                    ON DELETE CASCADE,
-
-                FOREIGN KEY (user_id)
-                    REFERENCES users(id)
-                    ON DELETE CASCADE,
-
-                UNIQUE (group_id, user_id)
+                status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'declined')),
+                FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(group_id, user_id)
             )
         `);
-
         console.log('Group members table created');
 
         // Insert sample users with bcrypt hashes
