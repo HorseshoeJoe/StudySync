@@ -9,6 +9,7 @@ async function setupDatabase() {
         await pool.query('DROP TABLE IF EXISTS group_members CASCADE');
         await pool.query('DROP TABLE IF EXISTS groups CASCADE');
         await pool.query('DROP TABLE IF EXISTS users CASCADE');
+
         console.log('Dropped existing tables');
 
         // Create users table
@@ -24,6 +25,7 @@ async function setupDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
         console.log('Users table created');
 
         // Create groups table
@@ -36,15 +38,20 @@ async function setupDatabase() {
                 institution VARCHAR(255) NOT NULL,
                 term VARCHAR(50) NOT NULL,
                 description TEXT,
-                visibility VARCHAR(20) DEFAULT 'public' CHECK (visibility IN ('public', 'request_to_join')),
+                visibility VARCHAR(20)
+                    DEFAULT 'public'
+                    CHECK (visibility IN ('public', 'request_to_join')),
                 max_members INTEGER DEFAULT 50,
                 current_members INTEGER DEFAULT 1,
                 created_by INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (created_by) REFERENCES users(id)
+
+                FOREIGN KEY (created_by)
+                    REFERENCES users(id)
             )
         `);
+
         console.log('Groups table created');
 
         // Create group_members table
@@ -94,34 +101,107 @@ async function setupDatabase() {
             ('bob@university.edu', 'Bob Smith', 'University of Toronto', 'Mathematics', '$2b$10$Yb9tXgZVXb9tXgZVXb9tXeO9tXgZVXb9tXgZVXb9tXgZVXb9tXgZVXb9tXg'),
             ('carol@university.edu', 'Carol White', 'University of Toronto', 'Physics', '$2b$10$Yb9tXgZVXb9tXgZVXb9tXeO9tXgZVXb9tXgZVXb9tXgZVXb9tXgZVXb9tXg')
         `);
+
         console.log('Sample users inserted');
 
         // Insert sample groups
         await pool.query(`
-            INSERT INTO groups (name, course_code, course_title, institution, term, description, visibility, max_members, current_members, created_by)
-            VALUES 
-            ('CS301 Study Squad', 'CS301', 'Database Systems', 'University of Toronto', 'Fall 2026', 'Group for CS301 students to share notes and help each other.', 'public', 30, 3, 1),
-            ('MATH202 Problem Solvers', 'MATH202', 'Calculus II', 'University of Toronto', 'Fall 2026', 'Solving calculus problems together.', 'public', 25, 2, 2),
-            ('PHY101 Physics Group', 'PHY101', 'Introduction to Physics', 'University of Toronto', 'Fall 2026', 'Study group for physics students.', 'request_to_join', 40, 1, 3),
-            ('ENG110 Writing Workshop', 'ENG110', 'Academic Writing', 'University of Toronto', 'Fall 2026', 'Peer review and writing support.', 'public', 20, 1, 1),
-            ('CS202 Data Structures', 'CS202', 'Data Structures and Algorithms', 'University of Toronto', 'Fall 2026', 'Preparing for coding interviews.', 'request_to_join', 35, 1, 2)
+            INSERT INTO groups (
+                name,
+                course_code,
+                course_title,
+                institution,
+                term,
+                description,
+                visibility,
+                max_members,
+                current_members,
+                created_by
+            )
+            VALUES
+            (
+                'CS301 Study Squad',
+                'CS301',
+                'Database Systems',
+                'University of Toronto',
+                'Fall 2026',
+                'Group for CS301 students to share notes and help each other.',
+                'public',
+                30,
+                5,
+                1
+            ),
+            (
+                'MATH202 Problem Solvers',
+                'MATH202',
+                'Calculus II',
+                'University of Toronto',
+                'Fall 2026',
+                'Solving calculus problems together.',
+                'public',
+                25,
+                8,
+                2
+            ),
+            (
+                'PHY101 Physics Group',
+                'PHY101',
+                'Introduction to Physics',
+                'University of Toronto',
+                'Fall 2026',
+                'Study group for physics students.',
+                'request_to_join',
+                40,
+                3,
+                3
+            ),
+            (
+                'ENG110 Writing Workshop',
+                'ENG110',
+                'Academic Writing',
+                'University of Toronto',
+                'Fall 2026',
+                'Peer review and writing support.',
+                'public',
+                20,
+                12,
+                4
+            ),
+            (
+                'CS202 Data Structures',
+                'CS202',
+                'Data Structures and Algorithms',
+                'University of Toronto',
+                'Fall 2026',
+                'Preparing for coding interviews.',
+                'public',
+                35,
+                15,
+                5
+            )
         `);
+
         console.log('Sample groups inserted');
 
-        // Add sample group members
+        // Record each sample group's creator as the owner
         await pool.query(`
-            INSERT INTO group_members (group_id, user_id, role, status)
-            VALUES 
-            (1, 1, 'owner', 'active'),
-            (1, 2, 'member', 'active'),
-            (1, 3, 'member', 'active'),
-            (2, 2, 'owner', 'active'),
-            (2, 1, 'member', 'active'),
-            (3, 3, 'owner', 'active')
+            INSERT INTO group_members (
+                group_id,
+                user_id,
+                role
+            )
+            VALUES
+            (1, 1, 'owner'),
+            (2, 2, 'owner'),
+            (3, 3, 'owner'),
+            (4, 4, 'owner'),
+            (5, 5, 'owner')
         `);
-        console.log('Sample group members added');
+
+        console.log('Sample group owners inserted');
 
         console.log('Database setup completed successfully!');
+
         process.exit(0);
     } catch (error) {
         console.error('Error setting up database:', error.message);

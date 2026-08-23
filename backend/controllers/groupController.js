@@ -30,20 +30,29 @@ exports.searchGroups = async (req, res) => {
 
         // Remove undefined or empty filters
         Object.keys(filters).forEach(key => {
-            if (filters[key] === undefined || filters[key] === '') {
+            if (
+                filters[key] === undefined ||
+                filters[key] === ''
+            ) {
                 delete filters[key];
             }
         });
 
-        const groups = await Group.searchAndFilter(filters);
+        const groups =
+            await Group.searchAndFilter(filters);
 
         res.status(200).json({
             success: true,
             count: groups.length,
             data: groups
         });
+
     } catch (error) {
-        console.error('Error searching groups:', error);
+        console.error(
+            'Error searching groups:',
+            error
+        );
+
         res.status(500).json({
             success: false,
             message: 'Failed to search groups',
@@ -56,6 +65,7 @@ exports.searchGroups = async (req, res) => {
 exports.getGroupById = async (req, res) => {
     try {
         const { id } = req.params;
+
         const group = await Group.findById(id);
 
         if (!group) {
@@ -69,8 +79,13 @@ exports.getGroupById = async (req, res) => {
             success: true,
             data: group
         });
+
     } catch (error) {
-        console.error('Error fetching group:', error);
+        console.error(
+            'Error fetching group:',
+            error
+        );
+
         res.status(500).json({
             success: false,
             message: 'Failed to fetch group',
@@ -82,8 +97,11 @@ exports.getGroupById = async (req, res) => {
 // Get filter options
 exports.getFilterOptions = async (req, res) => {
     try {
-        const institutions = await Group.getDistinctInstitutions();
-        const terms = await Group.getDistinctTerms();
+        const institutions =
+            await Group.getDistinctInstitutions();
+
+        const terms =
+            await Group.getDistinctTerms();
 
         res.status(200).json({
             success: true,
@@ -92,11 +110,17 @@ exports.getFilterOptions = async (req, res) => {
                 terms
             }
         });
+
     } catch (error) {
-        console.error('Error fetching filter options:', error);
+        console.error(
+            'Error fetching filter options:',
+            error
+        );
+
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch filter options',
+            message:
+                'Failed to fetch filter options',
             error: error.message
         });
     }
